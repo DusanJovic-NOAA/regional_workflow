@@ -1,9 +1,7 @@
 #!/bin/bash
 
 module purge
-module load intel/18.1.163
-module load netcdf/4.6.1
-module load hdf5/1.10.4
+module load intel/18.0.5.274 impi/2018.0.4 netcdf/4.7.0 hdf5/1.10.5
 module list
 
-make -f Makefile_theia
+make -f Makefile_hera
