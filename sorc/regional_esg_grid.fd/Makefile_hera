@@ -1,0 +1,30 @@
+SHELL := bash
+
+MAKEFLAGS += --warn-undefined-variables
+
+INC  = -I${NETCDF}/include
+
+LIBS = ${NETCDF}/lib/libnetcdff.a ${NETCDF}/lib/libnetcdf.a \
+       ${HDF5}/lib/libhdf5_hl.a ${HDF5}/lib/libhdf5.a /apps/szip/2.1/lib/libsz.a -lz
+
+FC = ifort
+#FFLAGS = -g -O2 $(INC)
+FFLAGS = -g -O0 -check all -check noarg_temp_created -check nopointer -warn -warn noerrors -fp-stack-check -fstack-protector-all -fpe0 -debug -traceback -ftrapuv $(INC)
+
+REGIONAL_ESG_GRID = regional_esg_grid
+
+.PHONY: all
+all : $(REGIONAL_ESG_GRID)
+
+$(REGIONAL_ESG_GRID): pkind.o pietc.o pietc_s.o pmat.o pmat2.o pmat4.o pmat5.o psym2.o pfun.o pesg.o regional_esg_grid.o $(LIBS)
+	$(FC) $(FFLAGS) -o $@ $^
+
+.SUFFIXES:
+.SUFFIXES: .f90 .o
+
+.f90.o:
+	$(FC) $(FFLAGS) -c $<
+
+.PHONY: clean
+clean:
+	rm -f *.o *.mod $(REGIONAL_ESG_GRID)
