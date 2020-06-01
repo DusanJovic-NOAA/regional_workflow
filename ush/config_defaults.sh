@@ -54,16 +54,28 @@ RUN_ENVIR="nco"
 # or is set to an empty string, it will be (re)set to a machine-dependent 
 # value.
 #
+# QUEUE_DEFAULT_TAG:
+# The rocoto xml tag to use for specifying the default queue. For most
+# platforms this should be "queue"
+#
 # QUEUE_HPSS:
 # The queue to which the tasks that get or create links to external model
 # files [which are needed to generate initial conditions (ICs) and lateral
 # boundary conditions (LBCs)] are submitted.  If this is not set or is 
 # set to an empty string, it will be (re)set to a machine-dependent value.
 #
+# QUEUE_HPSS_TAG:
+# The rocoto xml tag to use for specifying the HPSS queue. For slurm-based
+# platforms this is typically "partition", for others it may be "queue"
+#
 # QUEUE_FCST:
 # The queue to which the task that runs a forecast is submitted.  If this
 # is not set or set to an empty string, it will be (re)set to a machine-
 # dependent value.
+#
+# QUEUE_FCST_TAG:
+# The rocoto xml tag to use for specifying the fcst queue. For most
+# platforms this should be "queue"
 #
 # mach_doc_end
 #
@@ -72,8 +84,11 @@ RUN_ENVIR="nco"
 MACHINE="BIG_COMPUTER"
 ACCOUNT="project_name"
 QUEUE_DEFAULT="batch_queue"
+QUEUE_DEFAULT_TAG="queue"
 QUEUE_HPSS="hpss_queue"
+QUEUE_HPSS_TAG="partition"
 QUEUE_FCST="production_queue"
+QUEUE_FCST_TAG="queue"
 #
 #-----------------------------------------------------------------------
 #
@@ -136,6 +151,19 @@ PTMP="/path/to/temporary/directory/ptmp"
 #
 #-----------------------------------------------------------------------
 #
+# Set the sparator character(s) to use in the names of the grid, mosaic,
+# and orography fixed files.
+#
+# Ideally, the same separator should be used in the names of these fixed
+# files as the surface climatology fixed files (which always use a "."
+# as the separator), i.e. ideally, DOT_OR_USCORE should be set to "."
+#
+#-----------------------------------------------------------------------
+#
+DOT_OR_USCORE="_"
+#
+#-----------------------------------------------------------------------
+#
 # Set file names.  Definitions:
 #
 # RGNL_GRID_NML_FN:
@@ -143,7 +171,11 @@ PTMP="/path/to/temporary/directory/ptmp"
 # a "JPgrid" type of regional grid.
 #
 # FV3_NML_FN:
-# Name of file containing the forecast model's namelist settings.
+# Name of Fortran namelist file containing the forecast model's base namelist.
+#
+# FV3_NML_CONFIG:
+# Name of YAML configuration file containing the forecast model's namelist
+# settings for various configurations.
 #
 # DIAG_TABLE_FN:
 # Name of file that specifies the fields that the forecast model will 
@@ -190,7 +222,8 @@ RGNL_GRID_NML_FN="regional_grid.nml"
 DATA_TABLE_FN="data_table"
 DIAG_TABLE_FN="diag_table"
 FIELD_TABLE_FN="field_table"
-FV3_NML_FN="input.nml"
+FV3_NML_FN="input.nml.FV3"
+FV3_NML_CONFIG="FV3.input.yml"
 MODEL_CONFIG_FN="model_configure"
 NEMS_CONFIG_FN="nems.configure"
 
