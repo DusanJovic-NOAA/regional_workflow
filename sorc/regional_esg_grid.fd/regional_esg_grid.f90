@@ -13,7 +13,7 @@ program regional_grid
   real(dp)                     :: plat,plon,pazi=0.0
   real(dp)                     :: delx,dely
   integer                      :: lx,ly
-  namelist /regional_grid_nml/ plat,plon,delx,dely,lx,ly
+  namelist /regional_grid_nml/ plat,plon,pazi,delx,dely,lx,ly
 
   real(dp),parameter           :: re=6371000.0
   real(dp),parameter           :: lam=0.8
