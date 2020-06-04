@@ -50,7 +50,8 @@ interface hgrid_ak_rc;  module procedure hgrid_ak_rc;     end interface
 interface hgrid_ak_dd
    module procedure hgrid_ak_dd,hgrid_ak_dd_c;            end interface
 interface hgrid_ak_dc;  module procedure hgrid_ak_dc;     end interface
-interface hgrid_ak;     module procedure hgrid_ak_c;      end interface
+interface hgrid_ak 
+     module procedure hgrid_ak,hgrid_ak_c;                end interface
 contains
 
 !=============================================================================
@@ -1271,6 +1272,35 @@ pazi=pdazi*dtor
 call hgrid_ak_rc(lx,ly,nx,ny,A,K,plat,plon,pazi, &
     delx,dely,   xc,xcd,garea, ff)
 end subroutine hgrid_ak_dc
+
+!=============================================================================
+subroutine hgrid_ak(lx,ly,nx,ny,a,k,plat,plon,pazi, & !             [hgrid_ak]
+     re,delxre,delyre,  glat,glon,garea, ff)
+!=============================================================================
+! Like hgrid_ak_rr_c except the argument list includes the earth radius, re,
+! and this is used to express the map-space grid increments in the dimensional
+! units, delxre, delyre on entry, and to express the grid cell areas, garea,
+! in dimensional units upon return.
+! The gridded lats and lons, glat and glon, remain in radians.
+!============================================================================
+implicit none
+integer(spi),                             intent(in ):: lx,ly,nx,ny
+real(dp),                                 intent(in ):: a,k,plat,plon,pazi, &
+                                                        re,delxre,delyre
+real(dp),dimension(lx:lx+nx  ,ly:ly+ny  ),intent(out):: glat,glon
+real(dp),dimension(lx:lx+nx-1,ly:ly+ny-1),intent(out):: garea
+logical,                                  intent(out):: ff
+!-----------------------------------------------------------------------------
+real(dp):: delx,dely,rere
+!=============================================================================
+delx=delxre/re ! <- set nondimensional grid step delx
+dely=delyre/re ! <- set nondimensional grid step dely
+call hgrid_ak_rr(lx,ly,nx,ny,a,k,plat,plon,pazi, &
+     delx,dely,  glat,glon,garea, ff)
+if(ff)return
+rere=re*re
+garea=garea*rere ! <- Convert from steradians to physical area units.
+end subroutine hgrid_ak
 
 !=============================================================================
 subroutine hgrid_ak_c(lx,ly,nx,ny,a,k,plat,plon,pazi, & !           [hgrid_ak]
