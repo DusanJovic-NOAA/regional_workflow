@@ -27,31 +27,32 @@ use pietc, only: F,T,u0,u1,u2,o2,rtod,dtor,pih
 implicit none
 private
 public :: xctoxs,xstoxc,xstoxt,xttoxs,xttoxm,zttozm,zmtozt,xctoxm_ak,xmtoxc_ak,&
-          getedges,get_qq,get_qofmap,get_bestesg, &
+          getedges,get_qq,get_qofmap,get_bestesg,get_bestesg_inv, &
           hgrid_ak_rr,hgrid_ak_rc,hgrid_ak_dd,hgrid_ak_dc,hgrid_ak
-interface xctoxs;       module procedure xctoxs;          end interface
-interface xstoxc;       module procedure xstoxc;          end interface
-interface xstoxt;       module procedure xstoxt;          end interface
-interface xttoxs;       module procedure xttoxs;          end interface
-interface xttoxm;       module procedure xttoxm;          end interface
-interface zttozm;       module procedure zttozm;          end interface
-interface zmtozt;       module procedure zmtozt;          end interface
-interface xctoxm_ak;    module procedure xctoxm_ak;       end interface
-interface xmtoxc_ak;    module procedure xmtoxc_ak;       end interface
-interface getedges;     module procedure getedges;        end interface
-interface get_wxy;      module procedure get_wxy;         end interface
-interface get_qq;       module procedure get_qqw,get_qqt; end interface
-interface get_qofmap;   module procedure get_qofmap;      end interface
-interface get_bestesg;  module procedure get_bestesg;     end interface
-interface get_bestesgt; module procedure get_bestesgt;    end interface
+interface xctoxs;         module procedure xctoxs;          end interface
+interface xstoxc;         module procedure xstoxc;          end interface
+interface xstoxt;         module procedure xstoxt;          end interface
+interface xttoxs;         module procedure xttoxs;          end interface
+interface xttoxm;         module procedure xttoxm;          end interface
+interface zttozm;         module procedure zttozm;          end interface
+interface zmtozt;         module procedure zmtozt;          end interface
+interface xctoxm_ak;      module procedure xctoxm_ak;       end interface
+interface xmtoxc_ak;      module procedure xmtoxc_ak;       end interface
+interface getedges;       module procedure getedges;        end interface
+interface get_wxy;        module procedure get_wxy;         end interface
+interface get_qq;         module procedure get_qqw,get_qqt; end interface
+interface get_qofmap;     module procedure get_qofmap;      end interface
+interface get_bestesg;    module procedure get_bestesg;     end interface
+interface get_bestesgt;   module procedure get_bestesgt;    end interface
+interface get_bestesg_inv;module procedure get_bestesg_inv; end interface
 interface hgrid_ak_rr
-   module procedure hgrid_ak_rr,hgrid_ak_rr_c;            end interface
-interface hgrid_ak_rc;  module procedure hgrid_ak_rc;     end interface
+   module procedure hgrid_ak_rr,hgrid_ak_rr_c;              end interface
+interface hgrid_ak_rc;    module procedure hgrid_ak_rc;     end interface
 interface hgrid_ak_dd
-   module procedure hgrid_ak_dd,hgrid_ak_dd_c;            end interface
-interface hgrid_ak_dc;  module procedure hgrid_ak_dc;     end interface
+   module procedure hgrid_ak_dd,hgrid_ak_dd_c;              end interface
+interface hgrid_ak_dc;    module procedure hgrid_ak_dc;     end interface
 interface hgrid_ak 
-     module procedure hgrid_ak,hgrid_ak_c;                end interface
+     module procedure hgrid_ak,hgrid_ak_c;                  end interface
 contains
 
 !=============================================================================
@@ -809,6 +810,43 @@ enddo
 a=ak(1); k=ak(2)
 
 end subroutine get_bestesgt
+
+!=============================================================================
+subroutine get_bestesg_inv(lam,m_arcx,m_arcy, a,k,arcx,arcy, q,ff)![get_bestesg_inv]
+!=============================================================================
+! A form of inverse of get_bestesg where the desired map-space edge
+! coordinates, m_arcx and m_arcy, are input throught the argument
+! list, and the A, K, arcx, and arcy (degrees) are output such that,
+! if get_bestesg are called with these arcx and arcy as inputs, then
+! m_arcx and m_arcx that would be returned are exactly the desired
+! values. The A and K returned here are consistent also.
+!=============================================================================
+implicit none
+real(dp),intent(in ):: lam,m_arcx,m_arcy
+real(dp),intent(out):: a,k,arcx,arcy,q
+logical, intent(out):: ff
+!-----------------------------------------------------------------------------
+integer(spi),parameter:: nit=40         ! <- Number of iterations allowed
+real(dp),    parameter:: crit=1.e-12_dp ! <- Convergence criterion
+real(dp)              :: rx,ry,m_arcxa,m_arcya
+integer(spi)          :: it
+!=============================================================================
+arcx=m_arcx*rtod; arcy=m_arcy*rtod ! < 1st guess (degrees) of arcx and arcy
+do it=1,nit
+   call get_bestesg(lam,arcx,arcy, a,k,m_arcxa,m_arcya, q,ff)
+   if(ff)then
+      print'("In get_bestesg_inv; raised failure flag prevents completion")'
+      return
+   endif
+   rx=m_arcx/m_arcxa; ry=m_arcy/m_arcya
+   arcx=arcx*rx     ; arcy=arcy*ry
+   if(abs(rx-u1)<=crit .and. abs(ry-u1)<=crit)return
+enddo
+print'("WARNING; in get_bestesg_inv;")'
+print'("full convergence unattained after",i3," iterations")',nit
+print'("Residual proportionate mismatch of arcx and of arcy:",2(1x,e12.5))',&
+     rx-u1,ry-u1
+end subroutine get_bestesg_inv
 
 !=============================================================================
 subroutine hgrid_ak_rr(lx,ly,nx,ny,A,K,plat,plon,pazi, & !       [hgrid_ak_rr]
