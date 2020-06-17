@@ -16,7 +16,7 @@ REGIONAL_ESG_GRID = regional_esg_grid
 .PHONY: all
 all : $(REGIONAL_ESG_GRID)
 
-$(REGIONAL_ESG_GRID): pkind.o pietc.o pietc_s.o pmat.o pmat2.o pmat4.o pmat5.o psym2.o pfun.o pesg.o regional_esg_grid.o $(LIBS)
+$(REGIONAL_ESG_GRID): pkind.o pietc.o pietc_s.o pmat.o pmat2.o pmat4.o pmat5.o pfun.o psym2.o pesg.o regional_esg_grid.o $(LIBS)
 	$(FC) $(FFLAGS) -o $@ $^
 
 .SUFFIXES:
