@@ -27,7 +27,8 @@ use pietc, only: F,T,u0,u1,u2,o2,rtod,dtor,pih,pi2
 implicit none
 private
 public :: xctoxm_ak,xmtoxc_ak,get_edges,bestesg_geo,bestesg_map, &
-          hgrid_ak_rr,hgrid_ak_rc,hgrid_ak_dd,hgrid_ak_dc,hgrid_ak
+          hgrid_ak_rr,hgrid_ak_rc,hgrid_ak_dd,hgrid_ak_dc,hgrid_ak, &
+          gtoxm_ak_rr,gtoxm_ak_dd,xmtog_ak_rr,xmtog_ak_dd
 
 interface xctoxs;         module procedure xctoxs;                end interface
 interface xstoxc;         module procedure xstoxc,xstoxc1;        end interface
@@ -53,6 +54,15 @@ interface hgrid_ak_rc;    module procedure hgrid_ak_rc;           end interface
 interface hgrid_ak_dd;module procedure hgrid_ak_dd,hgrid_ak_dd_c; end interface
 interface hgrid_ak_dc;    module procedure hgrid_ak_dc;           end interface
 interface hgrid_ak;       module procedure hgrid_ak,hgrid_ak_c;   end interface
+interface gtoxm_ak_rr
+   module procedure gtoxm_ak_rr_m,gtoxm_ak_rr_g;                  end interface
+interface gtoxm_ak_dd
+   module procedure gtoxm_ak_dd_m,gtoxm_ak_dd_g;                  end interface
+interface xmtog_ak_rr
+   module procedure xmtog_ak_rr_m,xmtog_ak_rr_g;                  end interface
+interface xmtog_ak_dd
+   module procedure xmtog_ak_dd_m,xmtog_ak_dd_g;                  end interface
+
 interface gaulegh;        module procedure gaulegh;               end interface
 
 contains
@@ -1632,6 +1642,205 @@ do i=1,m; ic=m4p3-4*i
    x(i)=z; w(i)=-u2/(zzm*pp*pp)
 enddo
 end subroutine gaulegh
+
+!=============================================================================
+subroutine gtoxm_ak_rr_m(A,K,plat,plon,pazi,lat,lon,xm,ff)!      [gtoxm_ak_rr]
+!=============================================================================
+! Given the map specification (angles in radians), the grid spacing (in
+! map-space units) and the sample lat-lon (in radian), return the the
+! image in map space in a 2-vector in grid units. If the transformation
+! is invalid, return a .true. failure flag.
+!=============================================================================
+use pmat5, only: grtoc
+implicit none
+real(dp),             intent(in ):: a,k,plat,plon,pazi,lat,lon
+real(dp),dimension(2),intent(out):: xm
+logical,              intent(out):: ff
+real(dp),dimension(3,3):: prot,azirot
+real(dp)               :: clat,slat,clon,slon,cazi,sazi
+real(dp),dimension(3)  :: xc
+!=============================================================================
+clat=cos(plat); slat=sin(plat)
+clon=cos(plon); slon=sin(plon)
+cazi=cos(pazi); sazi=sin(pazi)
+
+azirot(:,1)=(/ cazi, sazi, u0/)
+azirot(:,2)=(/-sazi, cazi, u0/)
+azirot(:,3)=(/   u0,   u0, u1/)
+
+prot(:,1)=(/     -slon,       clon,    u0/)
+prot(:,2)=(/-slat*clon, -slat*slon,  clat/)
+prot(:,3)=(/ clat*clon,  clat*slon,  slat/)
+prot=matmul(prot,azirot)
+
+call grtoc(lat,lon,xc)
+xc=matmul(transpose(prot),xc)
+call xctoxm_ak(a,k,xc,xm,ff)
+end subroutine gtoxm_ak_rr_m
+!=============================================================================
+subroutine gtoxm_ak_rr_g(A,K,plat,plon,pazi,delx,dely,lat,lon,&! [gtoxm_ak_rr]
+     xm,ff)
+!=============================================================================
+! Given the map specification (angles in radians), the grid spacing (in
+! map-space units) and the sample lat-lon (in radian), return the the
+! image in map space in a 2-vector in grid units. If the transformation
+! is invalid, return a .true. failure flag.
+!=============================================================================
+implicit none
+real(dp),             intent(in ):: a,k,plat,plon,pazi,delx,dely,lat,lon
+real(dp),dimension(2),intent(out):: xm
+logical,              intent(out):: ff
+!=============================================================================
+call gtoxm_ak_rr_m(A,K,plat,plon,pazi,lat,lon,xm,ff); if(ff)return
+xm(1)=xm(1)/delx; xm(2)=xm(2)/dely
+end subroutine gtoxm_ak_rr_g
+
+!=============================================================================
+subroutine gtoxm_ak_dd_m(A,K,pdlat,pdlon,pdazi,dlat,dlon,&!      [gtoxm_ak_dd]
+     xm,ff)
+!=============================================================================
+! Like gtoxm_ak_rr_m, except input angles are expressed in degrees
+!=============================================================================
+implicit none
+real(dp),             intent(in ):: a,k,pdlat,pdlon,pdazi,dlat,dlon
+real(dp),dimension(2),intent(out):: xm
+logical,              intent(out):: ff
+!-----------------------------------------------------------------------------
+real(dp):: plat,plon,pazi,lat,lon
+!=============================================================================
+plat=pdlat*dtor ! Convert these angles from degrees to radians
+plon=pdlon*dtor !
+pazi=pdazi*dtor !
+lat=dlat*dtor
+lon=dlon*dtor
+call gtoxm_ak_rr_m(A,K,plat,plon,pazi,lat,lon,xm,ff)
+end subroutine gtoxm_ak_dd_m
+!=============================================================================
+subroutine gtoxm_ak_dd_g(A,K,pdlat,pdlon,pdazi,delx,dely,&!      [gtoxm_ak_dd]
+dlat,dlon,     xm,ff)
+!=============================================================================
+! Like gtoxm_ak_rr_g, except input angles are expressed in degrees
+!=============================================================================
+implicit none
+real(dp),             intent(in ):: a,k,pdlat,pdlon,pdazi,delx,dely,dlat,dlon
+real(dp),dimension(2),intent(out):: xm
+logical,              intent(out):: ff
+!-----------------------------------------------------------------------------
+real(dp):: plat,plon,pazi,lat,lon
+!=============================================================================
+plat=pdlat*dtor ! Convert these angles from degrees to radians
+plon=pdlon*dtor !
+pazi=pdazi*dtor !
+lat=dlat*dtor
+lon=dlon*dtor
+call gtoxm_ak_rr_g(A,K,plat,plon,pazi,delx,dely,lat,lon,xm,ff)
+end subroutine gtoxm_ak_dd_g
+
+!=============================================================================
+subroutine xmtog_ak_rr_m(A,K,plat,plon,pazi,xm,lat,lon,ff)!      [xmtog_ak_rr]
+!=============================================================================
+! Given the ESG map specified by parameters (A,K) and geographical
+! orientation, plat,plon,pazi (radians), and a position, in map-space
+! coordinates given by the 2-vector, xm, return the geographical
+! coordinates, lat and lon (radians). If the transformation is invalid for
+! any reason, return instead with a raised failure flag, FF= .true.
+!=============================================================================
+use pmat5, only: ctogr
+implicit none
+real(dp),             intent(in ):: a,k,plat,plon,pazi
+real(dp),dimension(2),intent(in ):: xm
+real(dp),             intent(out):: lat,lon
+logical,              intent(out):: ff
+!-----------------------------------------------------------------------------
+real(dp),dimension(3,2):: xcd
+real(dp),dimension(3,3):: prot,azirot
+real(dp)               :: clat,slat,clon,slon,cazi,sazi
+real(dp),dimension(3)  :: xc
+!=============================================================================
+clat=cos(plat); slat=sin(plat)
+clon=cos(plon); slon=sin(plon)
+cazi=cos(pazi); sazi=sin(pazi)
+
+azirot(:,1)=(/ cazi, sazi, u0/)
+azirot(:,2)=(/-sazi, cazi, u0/)
+azirot(:,3)=(/   u0,   u0, u1/)
+
+prot(:,1)=(/     -slon,       clon,    u0/)
+prot(:,2)=(/-slat*clon, -slat*slon,  clat/)
+prot(:,3)=(/ clat*clon,  clat*slon,  slat/)
+prot=matmul(prot,azirot)
+call xmtoxc_ak(a,k,xm,xc,xcd,ff); if(ff)return
+xc=matmul(prot,xc)
+call ctogr(xc,lat,lon)
+end subroutine xmtog_ak_rr_m
+!=============================================================================
+subroutine xmtog_ak_rr_g(A,K,plat,plon,pazi,delx,dely,xm,&!      [xmtog_ak_rr]
+     lat,lon,ff)
+!=============================================================================
+! For an ESG map with parameters, (A,K), and geographical orientation,
+! given by plon,plat,pazi (radians), and given a point in grid-space units
+! as the 2-vector, xm, return the geographical coordinates, lat, lon, (radians)
+! of this point. If instead the transformation is invalid for any reason, then
+! return the raised failure flag, FF=.true.
+!=============================================================================
+implicit none
+real(dp),             intent(in ):: a,k,plat,plon,pazi,delx,dely
+real(dp),dimension(2),intent(in ):: xm
+real(dp),             intent(out):: lat,lon
+logical,              intent(out):: ff
+!-----------------------------------------------------------------------------
+real(dp),dimension(2):: xmt
+!=============================================================================
+xmt(1)=xm(1)*delx ! Convert from grid units to intrinsic map-space units
+xmt(2)=xm(2)*dely !
+call xmtog_ak_rr_m(A,K,plat,plon,pazi,xmt,lat,lon,ff)
+end subroutine xmtog_ak_rr_g
+
+!=============================================================================
+subroutine xmtog_ak_dd_m(A,K,pdlat,pdlon,pdazi,xm,dlat,dlon,ff)! [xmtog_ak_dd]
+!=============================================================================
+! Like xmtog_ak_rr_m, except angles are expressed in degrees
+!=============================================================================
+use pmat5, only: ctogr
+implicit none
+real(dp),             intent(in ):: a,k,pdlat,pdlon,pdazi
+real(dp),dimension(2),intent(in ):: xm
+real(dp),             intent(out):: dlat,dlon
+logical,              intent(out):: ff
+!-----------------------------------------------------------------------------
+real(dp):: plat,plon,pazi,lat,lon
+!=============================================================================
+plat=pdlat*dtor ! Convert these angles from degrees to radians
+plon=pdlon*dtor !
+pazi=pdazi*dtor !
+call xmtog_ak_rr_m(A,K,plat,plon,pazi,xm,lat,lon,ff)
+dlat=lat*rtod
+dlon=lon*rtod
+end subroutine xmtog_ak_dd_m
+!=============================================================================
+subroutine xmtog_ak_dd_g(A,K,pdlat,pdlon,pdazi,delx,dely,xm,&!   [xmtog_ak_dd]
+     dlat,dlon,ff)
+!=============================================================================
+! Like xmtog_ak_rr_g, except angles are expressed in degrees
+!=============================================================================
+implicit none
+real(dp),             intent(in ):: a,k,pdlat,pdlon,pdazi,delx,dely
+real(dp),dimension(2),intent(in ):: xm
+real(dp),             intent(out):: dlat,dlon
+logical,              intent(out):: ff
+!-----------------------------------------------------------------------------
+real(dp),dimension(2):: xmt
+real(dp)             :: plat,plon,pazi,lat,lon
+!=============================================================================
+xmt(1)=xm(1)*delx ! Convert from grid units to intrinsic map-space units
+xmt(2)=xm(2)*dely !
+plat=pdlat*dtor ! Convert these angles from degrees to radians
+plon=pdlon*dtor !
+pazi=pdazi*dtor !
+call xmtog_ak_rr_m(A,K,plat,plon,pazi,xmt,lat,lon,ff)
+dlat=lat*rtod
+dlon=lon*rtod
+end subroutine xmtog_ak_dd_g
 
 end module pesg
 
